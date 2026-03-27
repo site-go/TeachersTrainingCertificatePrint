@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teachers Training 2026 | Certificate Terminal</title>
+    <link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:wght@400;700&family=Plus+Jakarta+Sans:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #6366f1; --primary-light: #eef2ff; --success: #10b981;
+            --danger: #ef4444; --bg: #f8fafc; --card: #ffffff;
+            --text-main: #1e293b; --text-dim: #64748b; --border: #e2e8f0;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Plus Jakarta Sans', sans-serif; }
+        body { background: var(--bg); color: var(--text-main); padding: 20px; min-height: 100vh; }
+        .layout-wrapper { max-width: 1600px; margin: 0 auto; display: grid; grid-template-columns: 350px 1fr; gap: 25px; }
+        .white-panel { background: var(--card); border: 1px solid var(--border); border-radius: 24px; padding: 24px; box-shadow: 0 4px 12px rgba(0,0,0,0.03); margin-bottom: 20px; }
+        .panel-header { font-size: 0.75rem; font-weight: 800; text-transform: uppercase; color: var(--primary); margin-bottom: 15px; border-bottom: 1px solid var(--border); padding-bottom: 8px; }
+        .control-item { display: flex; flex-direction: column; gap: 4px; margin-bottom: 10px; }
+        .control-item label { font-size: 0.55rem; font-weight: 800; color: var(--text-dim); text-transform: uppercase; }
+        .control-item input, .control-item select { padding: 10px; border: 1px solid var(--border); border-radius: 12px; font-size: 0.85rem; width: 100%; outline: none; }
+        .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+        
+        /* Sidebar Toggle */
+        .toggle-container { display: flex; align-items: center; gap: 10px; margin-top: 10px; cursor: pointer; }
+        .toggle-container input { width: 18px; height: 18px; cursor: pointer; }
+        .toggle-label { font-size: 0.75rem; font-weight: 700; color: var(--text-main); }
+
+        .filter-section { display: flex; flex-direction: column; gap: 15px; margin-bottom: 25px; }
+        .pill-box { display: flex; gap: 8px; background: #e2e8f0; padding: 5px; border-radius: 50px; width: fit-content; }
+        .pill { padding: 6px 18px; border-radius: 50px; border: none; font-weight: 800; font-size: 0.65rem; cursor: pointer; transition: 0.3s; color: #64748b; background: transparent; }
+        .pill.active { background: white; color: var(--primary); box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
+        
+        .search-row { display: flex; gap: 15px; align-items: center; margin-bottom: 20px; }
+        .search-bar { flex: 1; background: var(--card); border: 1px solid var(--border); padding: 12px 24px; border-radius: 50px; display: flex; align-items: center; }
+        #globalSearch { flex: 1; background: transparent; border: none; font-size: 0.9rem; outline: none; }
+        
+        .bulk-actions { margin-bottom: 15px; padding: 0 10px; display: flex; align-items: center; gap: 15px; font-size: 0.75rem; font-weight: 700; }
+
+        .data-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 15px; }
+        .participant-card { background: var(--card); border: 1px solid var(--border); padding: 15px; border-radius: 20px; display: flex; align-items: center; gap: 12px; transition: 0.3s; }
+        .participant-card.selected { border-color: var(--primary); background: var(--primary-light); }
+        .p-info { flex-grow: 1; }
+        .p-info h4 { font-size: 0.8rem; font-weight: 800; text-transform: uppercase; color: var(--text-main); }
+        .p-info p { font-size: 0.65rem; color: var(--primary); font-weight: 700; line-height: 1.2; margin-top: 2px; }
+        
+        .btn-action { padding: 12px 24px; border-radius: 50px; border: none; cursor: pointer; font-weight: 800; font-size: 0.7rem; text-transform: uppercase; transition: 0.2s; }
+        .btn-print-sm { background: var(--success); color: white; width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; border: none; cursor: pointer; font-size: 0.8rem; }
+        
+        #bulk-container { display: none; }
+        .cert-page { position: relative; width: 279.4mm; height: 215.9mm; background: white; page-break-after: always; overflow: hidden; background-size: 100% 100%; }
+        .print-text { position: absolute; color: #000; transform: translate(-50%, -50%); text-align: center; width: 95%; }
+        
+        @media print { body { padding: 0 !important; margin: 0 !important; background: white !important; } .layout-wrapper { display: none !important; } #bulk-container { display: block !important; } @page { size: 279.4mm 215.9mm; margin: 0; } }
+        .upload-zone { border: 2px dashed var(--border); padding: 15px; border-radius: 15px; text-align: center; cursor: pointer; margin-bottom: 15px; font-size: 0.7rem; font-weight: 700; color: var(--text-dim); }
+    </style>
+</head>
+<body>
+
+    <div class="layout-wrapper">
+        <div class="sidebar">
+            <div class="white-panel">
+                <div class="panel-header">🖼️ Printing Mode</div>
+                <div class="upload-zone" onclick="document.getElementById('bgUpload').click()">
+                    <span id="uploadLabel">📁 Upload Background</span>
+                    <input type="file" id="bgUpload" hidden accept="image/*" onchange="handleBgUpload(this)">
+                </div>
+                <label class="toggle-container">
+                    <input type="checkbox" id="useTemplate" checked onchange="saveConfig()">
+                    <span class="toggle-label">Enable Template Background</span>
+                </label>
+            </div>
+
+            <div class="white-panel">
+                <div class="panel-header">📚 Specific Topic Filter</div>
+                <div class="control-item">
+                    <select id="specificTopicFilter" onchange="render()">
+                        <option value="All">Show All Workshops</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="white-panel">
+                <div class="panel-header">🎯 Layout Adjustments</div>
+                <div class="grid-3">
+                    <div class="control-item"><label>Top %</label><input type="number" id="nameTop" value="48" oninput="saveConfig()"></div>
+                    <div class="control-item"><label>Left %</label><input type="number" id="nameLeft" value="50" oninput="saveConfig()"></div>
+                    <div class="control-item"><label>Size px</label><input type="number" id="nameSize" value="70" oninput="saveConfig()"></div>
+                </div>
+                <div class="grid-3">
+                    <div class="control-item"><label>Topic T%</label><input type="number" id="wsTop" value="82" oninput="saveConfig()"></div>
+                    <div class="control-item"><label>Topic L%</label><input type="number" id="wsLeft" value="50" oninput="saveConfig()"></div>
+                    <div class="control-item"><label>Size px</label><input type="number" id="wsSize" value="25" oninput="saveConfig()"></div>
+                </div>
+            </div>
+            
+            <button class="btn-action" style="background:#f1f5f9; color:#64748b; width:100%" onclick="localStorage.clear(); location.reload();">Reset System</button>
+        </div>
+
+        <div class="main-view">
+            <div class="search-row">
+                <div class="search-bar"><input type="text" id="globalSearch" placeholder="Search teacher..." onkeyup="render()"></div>
+                <button class="btn-action" style="background:#1e293b; color:white;" onclick="fetchLiveData()" id="syncBtn">🔄 Sync</button>
+                <button class="btn-action" style="background:var(--primary); color:white;" onclick="printSelected()" id="printSelectedBtn">✅ Print Selected (0)</button>
+            </div>
+
+            <div class="filter-section">
+                <div class="pill-box" id="batchFilters">
+                    <button class="pill active" onclick="setFilter('batch', 'batch1', this)">B1</button>
+                    <button class="pill" onclick="setFilter('batch', 'batch2', this)">B2</button>
+                    <button class="pill" onclick="setFilter('batch', 'batch3', this)">B3</button>
+                    <button class="pill" onclick="setFilter('batch', 'batch4', this)">B4</button>
+                    <button class="pill" onclick="setFilter('batch', 'batch5', this)">B5</button>
+                    <button class="pill" onclick="setFilter('batch', 'batch6', this)">B6</button>
+                </div>
+            </div>
+
+            <div class="bulk-actions">
+                <input type="checkbox" id="selectAll" onchange="toggleAll(this)" style="width:18px;height:18px;">
+                <label for="selectAll" style="cursor:pointer">Select All Visible Participants</label>
+            </div>
+
+            <div id="listContainer" class="data-grid"></div>
+        </div>
+    </div>
+
+    <div id="bulk-container"></div>
+
+    <script>
+        const DATA_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTJEJuWYBbbEtvlroXnqVtjt2V4Ev_F8iT4HR0Pi419O1xEgD4VDfFcyuaT1XiMmG6AZtX8yR5euWyc/pub?output=csv";
+
+        let activeCards = []; 
+        let selectedIDs = new Set();
+        let filters = { batch: 'batch1' };
+        let certImage = '';
+
+        window.onload = () => {
+            const saved = JSON.parse(localStorage.getItem('iTechCertConfigV2'));
+            if (saved) {
+                Object.keys(saved).forEach(key => {
+                    const el = document.getElementById(key);
+                    if(el) {
+                        if(el.type === 'checkbox') el.checked = saved[key];
+                        else el.value = saved[key];
+                    }
+                });
+                certImage = saved.certImage || '';
+                if(certImage) document.getElementById('uploadLabel').innerText = "✅ Template Ready";
+            }
+            fetchLiveData();
+        };
+
+        async function fetchLiveData() {
+            const btn = document.getElementById('syncBtn');
+            const topicDropdown = document.getElementById('specificTopicFilter');
+            btn.innerText = "Syncing...";
+            
+            try {
+                const response = await fetch(`${DATA_URL}&t=${Date.now()}`);
+                const csvData = await response.text();
+                const rows = csvData.split(/\r?\n/).filter(r => r.trim() !== "");
+                const headers = rows[0].split(',').map(h => h.replace(/"/g, '').trim().toLowerCase());
+                const dataRows = rows.slice(1);
+
+                activeCards = [];
+                let uniqueTopics = new Set();
+
+                dataRows.forEach((row, rowIndex) => {
+                    const cols = row.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(c => c.replace(/"/g, '').trim());
+                    const teacherName = cols[headers.indexOf('fullname')];
+                    const batch = cols[headers.indexOf('schedule')];
+                    const workshopSummary = cols[headers.indexOf('workshop')];
+
+                    if (!teacherName || !workshopSummary) return;
+
+                    workshopSummary.split(',').map(t => t.trim()).forEach((topic, tIndex) => {
+                        if (topic === "") return;
+                        uniqueTopics.add(topic);
+                        activeCards.push({
+                            uid: `r${rowIndex}t${tIndex}`,
+                            name: teacherName,
+                            batch: batch.toLowerCase().replace(/\s/g, ''),
+                            topicFull: topic
+                        });
+                    });
+                });
+
+                topicDropdown.innerHTML = '<option value="All">Show All Workshops</option>';
+                Array.from(uniqueTopics).sort().forEach(topic => {
+                    const opt = document.createElement('option');
+                    opt.value = topic; opt.innerText = topic;
+                    topicDropdown.appendChild(opt);
+                });
+
+                render();
+                btn.innerText = "🔄 Sync";
+            } catch (err) { btn.innerText = "❌ Failed"; console.error(err); }
+        }
+
+        function setFilter(type, value, btn) {
+            filters[type] = value;
+            btn.parentNode.querySelectorAll('.pill').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            render();
+        }
+
+        function toggleAll(cb) {
+            const visibleCards = getFilteredCards();
+            if(cb.checked) visibleCards.forEach(c => selectedIDs.add(c.uid));
+            else visibleCards.forEach(c => selectedIDs.delete(c.uid));
+            render();
+        }
+
+        function getFilteredCards() {
+            const q = document.getElementById('globalSearch').value.toUpperCase();
+            const selectedTopic = document.getElementById('specificTopicFilter').value;
+            return activeCards.filter(c => {
+                const matchesSearch = c.name.toUpperCase().includes(q);
+                const matchesBatch = c.batch === filters.batch;
+                const matchesTopic = selectedTopic === "All" || c.topicFull === selectedTopic;
+                return matchesSearch && matchesBatch && matchesTopic;
+            });
+        }
+
+        function render() {
+            const container = document.getElementById('listContainer');
+            const filtered = getFilteredCards();
+
+            container.innerHTML = filtered.map(c => `
+                <div class="participant-card ${selectedIDs.has(c.uid) ? 'selected' : ''}">
+                    <input type="checkbox" style="width:20px;height:20px;accent-color:var(--primary)" 
+                        ${selectedIDs.has(c.uid) ? 'checked' : ''} 
+                        onclick="toggleSelection('${c.uid}')">
+                    <div class="p-info" onclick="toggleSelection('${c.uid}')" style="cursor:pointer">
+                        <h4>${c.name}</h4>
+                        <p>${c.topicFull}</p>
+                    </div>
+                    <button class="btn-print-sm" onclick="event.stopPropagation(); quickPrint('${c.uid}')">🖨️</button>
+                </div>
+            `).join('');
+            updateSelectionUI();
+        }
+
+        function toggleSelection(uid) {
+            selectedIDs.has(uid) ? selectedIDs.delete(uid) : selectedIDs.add(uid);
+            render();
+        }
+
+        function updateSelectionUI() {
+            document.getElementById('printSelectedBtn').innerText = `✅ Print Selected (${selectedIDs.size})`;
+        }
+
+        function quickPrint(uid) {
+            const item = activeCards.find(c => c.uid === uid);
+            prepareBulk([item]);
+            setTimeout(() => window.print(), 200);
+        }
+
+        function printSelected() {
+            const toPrint = activeCards.filter(c => selectedIDs.has(c.uid));
+            if (!toPrint.length) return alert("Select teachers first.");
+            prepareBulk(toPrint);
+            setTimeout(() => window.print(), 200);
+        }
+
+        function prepareBulk(list) {
+            const config = JSON.parse(localStorage.getItem('iTechCertConfigV2'));
+            const container = document.getElementById('bulk-container');
+            const bg = config.useTemplate ? `url('${certImage}')` : 'none';
+            
+            container.innerHTML = list.map(p => `
+                <div class="cert-page" style="background-image: ${bg}">
+                    <div class="print-text" style="top:${config.nameTop}%; left:${config.nameLeft}%; font-size:${config.nameSize}px; font-weight:700; font-family:'Libre Baskerville', serif;">${p.name}</div>
+                    <div class="print-text" style="top:${config.wsTop}%; left:${config.wsLeft}%; font-size:${config.wsSize}px; font-weight:700; font-family:'Plus Jakarta Sans', sans-serif;">${p.topicFull.toUpperCase()}</div>
+                </div>
+            `).join('');
+        }
+
+        function handleBgUpload(input) {
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    certImage = e.target.result;
+                    document.getElementById('uploadLabel').innerText = "✅ Template Ready";
+                    saveConfig();
+                };
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+
+        function saveConfig() {
+            const config = {
+                nameTop: document.getElementById('nameTop').value,
+                nameLeft: document.getElementById('nameLeft').value,
+                nameSize: document.getElementById('nameSize').value,
+                wsTop: document.getElementById('wsTop').value,
+                wsLeft: document.getElementById('wsLeft').value,
+                wsSize: document.getElementById('wsSize').value,
+                useTemplate: document.getElementById('useTemplate').checked,
+                certImage: certImage
+            };
+            localStorage.setItem('iTechCertConfigV2', JSON.stringify(config));
+        }
+    </script>
+</body>
+</html>

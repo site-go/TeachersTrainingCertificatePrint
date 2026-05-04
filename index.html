@@ -17,7 +17,6 @@
         
         .layout-wrapper { max-width: 1600px; margin: 0 auto; display: grid; grid-template-columns: 350px 1fr; gap: 25px; }
         
-        /* Sidebar Panels */
         .white-panel { background: var(--card); border: 1px solid var(--border); border-radius: 24px; padding: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.03); margin-bottom: 20px; }
         .panel-header { font-size: 0.75rem; font-weight: 800; text-transform: uppercase; color: var(--primary); margin-bottom: 15px; border-bottom: 1px solid var(--border); padding-bottom: 8px; }
         
@@ -26,7 +25,6 @@
         .control-item input, .control-item select { padding: 10px; border: 1px solid var(--border); border-radius: 12px; font-size: 0.85rem; width: 100%; outline: none; }
         .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
         
-        /* UI Stats & Selection */
         .stats-row { display: flex; gap: 10px; margin-bottom: 15px; }
         .stat-card { flex: 1; background: white; padding: 12px; border-radius: 16px; border: 1px solid var(--border); text-align: center; }
         .stat-card small { font-size: 0.6rem; font-weight: 800; color: var(--text-dim); text-transform: uppercase; }
@@ -41,7 +39,7 @@
         #globalSearch { flex: 1; background: transparent; border: none; font-size: 0.9rem; outline: none; }
         
         .data-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(380px, 1fr)); gap: 15px; }
-        .participant-card { background: var(--card); border: 1px solid var(--border); padding: 15px; border-radius: 20px; display: flex; align-items: center; gap: 12px; transition: 0.3s; position: relative; overflow: hidden; }
+        .participant-card { background: var(--card); border: 1px solid var(--border); padding: 15px; border-radius: 20px; display: flex; align-items: center; gap: 12px; transition: 0.3s; cursor: pointer; position: relative; overflow: hidden; }
         .participant-card.selected { border-color: var(--primary); background: var(--primary-light); }
         
         .cluster-tag { position: absolute; right: 0; top: 0; padding: 4px 10px; font-size: 0.5rem; font-weight: 900; color: white; border-bottom-left-radius: 10px; text-transform: uppercase; }
@@ -159,7 +157,7 @@
             if (saved) {
                 Object.keys(saved).forEach(key => {
                     const el = document.getElementById(key);
-                    if(el) el.value = saved[key];
+                    if(el && key !== 'certImage') el.value = saved[key];
                 });
                 certImage = saved.certImage || '';
                 if(certImage) document.getElementById('uploadLabel').innerText = "✅ Template Loaded";
@@ -168,35 +166,38 @@
         };
 
         async function parseCSV(url, clusterName) {
-            const res = await fetch(url + '&t=' + Date.now());
-            const text = await res.text();
-            const rows = text.split(/\r?\n/).filter(r => r.trim() !== "");
-            const headers = rows[0].split(',').map(h => h.replace(/"/g, '').trim().toLowerCase());
-            
-            const nameIdx = headers.indexOf('fullname');
-            const wsIdx = headers.indexOf('workshop');
-            const batchIdx = headers.indexOf('schedule');
+            try {
+                const res = await fetch(url + '&t=' + Date.now());
+                const text = await res.text();
+                const rows = text.split(/\r?\n/).filter(r => r.trim() !== "");
+                if (rows.length < 2) return [];
 
-            let parsed = [];
-            rows.slice(1).forEach((row, rIdx) => {
-                const cols = row.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(c => c.replace(/"/g, '').trim());
-                const name = cols[nameIdx];
-                const workshops = cols[wsIdx];
-                const batchRaw = cols[batchIdx] || '';
+                const headers = rows[0].split(',').map(h => h.replace(/"/g, '').trim().toLowerCase());
+                const nameIdx = headers.indexOf('fullname');
+                const wsIdx = headers.indexOf('workshop');
+                const batchIdx = headers.indexOf('schedule');
 
-                if (name && workshops) {
-                    workshops.split(',').forEach((ws, tIdx) => {
-                        parsed.push({
-                            uid: `${clusterName}_r${rIdx}_t${tIdx}`,
-                            name: name,
-                            topic: ws.trim(),
-                            batch: batchRaw.toLowerCase().replace(/\s/g, ''),
-                            cluster: clusterName
+                let parsed = [];
+                rows.slice(1).forEach((row, rIdx) => {
+                    const cols = row.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(c => c.replace(/"/g, '').trim());
+                    const name = cols[nameIdx];
+                    const workshops = cols[wsIdx];
+                    const batchRaw = cols[batchIdx] || '';
+
+                    if (name && workshops) {
+                        workshops.split(',').forEach((ws, tIdx) => {
+                            parsed.push({
+                                uid: `${clusterName}_r${rIdx}_t${tIdx}`,
+                                name: name,
+                                topic: ws.trim(),
+                                batch: batchRaw.toLowerCase().replace(/\s/g, ''),
+                                cluster: clusterName
+                            });
                         });
-                    });
-                }
-            });
-            return parsed;
+                    }
+                });
+                return parsed;
+            } catch (e) { return []; }
         }
 
         async function fetchLiveData() {
@@ -213,7 +214,6 @@
                 datasets.panay = pan;
                 datasets.mindanao = min;
 
-                // Update Topic Dropdown
                 const allTopics = new Set([...orig, ...pan, ...min].map(i => i.topic));
                 const dropdown = document.getElementById('specificTopicFilter');
                 dropdown.innerHTML = '<option value="All">All Workshops</option>';
@@ -239,10 +239,7 @@
             currentView = view;
             document.querySelectorAll('#clusterSelector .pill').forEach(p => p.classList.remove('active'));
             btn.classList.add('active');
-            
-            // Hide batch selector if not on Original Data
             document.getElementById('batchSelector').style.display = (view === 'original') ? 'flex' : 'none';
-            
             render();
         }
 
@@ -268,7 +265,7 @@
             container.innerHTML = filtered.map(p => `
                 <div class="participant-card ${selectedIDs.has(p.uid) ? 'selected' : ''}" onclick="toggleSelection('${p.uid}')">
                     <div class="cluster-tag ${p.cluster === 'panay' ? 'tag-panay' : (p.cluster === 'mindanao' ? 'tag-mindanao' : '')}">${p.cluster === 'original' ? '' : p.cluster}</div>
-                    <input type="checkbox" ${selectedIDs.has(p.uid) ? 'checked' : ''} style="width:20px;height:20px;">
+                    <input type="checkbox" ${selectedIDs.has(p.uid) ? 'checked' : ''} style="width:20px;height:20px;pointer-events:none;">
                     <div class="p-info">
                         <h4>${p.name}</h4>
                         <p>${p.topic}</p>
@@ -310,12 +307,23 @@
         }
 
         function printSelected() {
-            if (!certImage) return alert("Upload background template!");
+            if (!certImage) return alert("Upload background template first!");
+            
             const allSource = [...datasets.original, ...datasets.panay, ...datasets.mindanao];
             const toPrint = allSource.filter(p => selectedIDs.has(p.uid));
-            if (!toPrint.length) return alert("Select teachers first.");
             
-            const config = JSON.parse(localStorage.getItem('certTerminalV4_7'));
+            if (!toPrint.length) return alert("Select at least one teacher first.");
+            
+            // Fix: Pull directly from inputs to avoid null config errors
+            const config = {
+                nameTop: document.getElementById('nameTop').value,
+                nameLeft: document.getElementById('nameLeft').value,
+                nameSize: document.getElementById('nameSize').value,
+                wsTop: document.getElementById('wsTop').value,
+                wsLeft: document.getElementById('wsLeft').value,
+                wsSize: document.getElementById('wsSize').value
+            };
+
             const container = document.getElementById('bulk-container');
             
             container.innerHTML = toPrint.map(p => `
@@ -324,7 +332,11 @@
                     <div class="print-text" style="top:${config.wsTop}%; left:${config.wsLeft}%; font-size:${config.wsSize}px; font-weight:700; font-family:'Plus Jakarta Sans', sans-serif;">${p.topic.toUpperCase()}</div>
                 </div>
             `).join('');
-            window.print();
+
+            // Give the browser 500ms to handle the DOM injection and background paint
+            setTimeout(() => {
+                window.print();
+            }, 500);
         }
     </script>
 </body>

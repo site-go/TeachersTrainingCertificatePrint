@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Teachers Training 2026 | Certificate Terminal v4.7</title>
+    <title>Teachers Training 2026 | Certificate Terminal v4.7 + ZAMPEN</title>
     <link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:wght@400;700&family=Plus+Jakarta+Sans:wght@300;400;600;700;800&display=swap" rel="stylesheet">
     <style>
         :root {
             --primary: #6366f1; --primary-light: #eef2ff; --success: #10b981;
             --bg: #f8fafc; --card: #ffffff;
             --text-main: #1e293b; --text-dim: #64748b; --border: #e2e8f0;
-            --panay: #0ea5e9; --mindanao: #f59e0b;
+            --panay: #0ea5e9; --mindanao: #f59e0b; --zampen: #8b5cf6;
         }
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Plus Jakarta Sans', sans-serif; }
         body { background: var(--bg); color: var(--text-main); padding: 20px; min-height: 100vh; }
@@ -31,7 +31,7 @@
         .stat-card h3 { font-size: 1.2rem; color: var(--text-main); }
 
         .selector-group { display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px; }
-        .pill-box { display: flex; gap: 8px; background: #e2e8f0; padding: 5px; border-radius: 50px; width: fit-content; }
+        .pill-box { display: flex; gap: 8px; background: #e2e8f0; padding: 5px; border-radius: 50px; width: fit-content; flex-wrap: wrap; }
         .pill { padding: 6px 18px; border-radius: 50px; border: none; font-weight: 800; font-size: 0.65rem; cursor: pointer; transition: 0.3s; color: #64748b; background: transparent; }
         .pill.active { background: white; color: var(--primary); box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
         
@@ -45,6 +45,7 @@
         .cluster-tag { position: absolute; right: 0; top: 0; padding: 4px 10px; font-size: 0.5rem; font-weight: 900; color: white; border-bottom-left-radius: 10px; text-transform: uppercase; }
         .tag-panay { background: var(--panay); }
         .tag-mindanao { background: var(--mindanao); }
+        .tag-zampen { background: var(--zampen); }
 
         .p-info h4 { font-size: 0.8rem; font-weight: 800; text-transform: uppercase; color: var(--text-main); }
         .p-info p { font-size: 0.65rem; color: var(--primary); font-weight: 700; margin-top: 2px; }
@@ -103,6 +104,7 @@
                 <div class="stat-card" style="border-left: 4px solid var(--primary);"><small>ORIGINAL</small><h3 id="countOriginal">0</h3></div>
                 <div class="stat-card" style="border-left: 4px solid var(--panay);"><small>PANAY</small><h3 id="countPanay">0</h3></div>
                 <div class="stat-card" style="border-left: 4px solid var(--mindanao);"><small>MINDANAO</small><h3 id="countMindanao">0</h3></div>
+                <div class="stat-card" style="border-left: 4px solid var(--zampen);"><small>ZAMPEN</small><h3 id="countZampen">0</h3></div>
             </div>
 
             <div style="display: flex; gap: 15px; margin-bottom: 20px; align-items: center;">
@@ -116,6 +118,7 @@
                     <button class="pill active" onclick="setFilterCluster('original', this)">ORIGINAL DATA</button>
                     <button class="pill" onclick="setFilterCluster('panay', this)">PANAY CLUSTER</button>
                     <button class="pill" onclick="setFilterCluster('mindanao', this)">MINDANAO CLUSTER</button>
+                    <button class="pill" onclick="setFilterCluster('zampen', this)">ZAMPEN DATA</button>
                 </div>
 
                 <div class="pill-box" id="batchSelector">
@@ -143,10 +146,11 @@
         const URLS = {
             panay: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSNs_RBN6sLDKG1GdPw-zAUBQc94_EVztntR4kWCmkebFUATHQalopVuzhlEBCBeJ0nNki8zn75pPTU/pub?output=csv',
             mindanao: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vROJBuC8QcVYdbkOWg7UlUhVAgnFOSa9i7p7HRGgABYIPdsxw31MEx0fzBrkH5I1_k2-mSDf6Y2itVJ/pub?output=csv',
-            original: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTJEJuWYBbbEtvlroXnqVtjt2V4Ev_F8iT4HR0Pi419O1xEgD4VDfFcyuaT1XiMmG6AZtX8yR5euWyc/pub?output=csv'
+            original: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTJEJuWYBbbEtvlroXnqVtjt2V4Ev_F8iT4HR0Pi419O1xEgD4VDfFcyuaT1XiMmG6AZtX8yR5euWyc/pub?output=csv',
+            zampen: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSp5cKBgVLQS8OGQA3n2qiCLM3igNoCl10kSpXbL75eLzw5r6ZXDR-g7dbKo_yOhaJ517tECIC3pUg-/pub?output=csv'
         };
 
-        let datasets = { original: [], panay: [], mindanao: [] };
+        let datasets = { original: [], panay: [], mindanao: [], zampen: [] };
         let selectedIDs = new Set();
         let certImage = '';
         let currentView = 'original';
@@ -200,21 +204,73 @@
             } catch (e) { return []; }
         }
 
+        // ----- Zampen specific parser: name from column E (index 4), batch from column N (index 13), workshop auto-detected -----
+        async function parseZampenCSV(url, clusterName) {
+            try {
+                const res = await fetch(url + '&t=' + Date.now());
+                const text = await res.text();
+                const rows = text.split(/\r?\n/).filter(r => r.trim() !== "");
+                if (rows.length < 2) return [];
+
+                const headers = rows[0].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(h => h.replace(/"/g, '').trim().toLowerCase());
+                // find workshop column
+                let workshopIdx = -1;
+                const workshopKeywords = ['workshop', 'topic', 'class', 'session', 'course', 'event'];
+                for (let i = 0; i < headers.length; i++) {
+                    if (workshopKeywords.some(k => headers[i].includes(k))) {
+                        workshopIdx = i;
+                        break;
+                    }
+                }
+                if (workshopIdx === -1) workshopIdx = (headers.length > 5) ? 5 : 1; // fallback to column F or second column
+
+                let parsed = [];
+                for (let rowIndex = 1; rowIndex < rows.length; rowIndex++) {
+                    const row = rows[rowIndex];
+                    const cols = row.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(c => c.replace(/"/g, '').trim());
+                    if (cols.length < 14) continue; // need at least column N (index 13)
+
+                    let rawName = cols[4] || "";          // column E
+                    if (rawName === "" || rawName.toUpperCase() === "FULL NAME" || rawName.toUpperCase() === "NAME") continue;
+
+                    let rawWorkshop = (workshopIdx < cols.length) ? cols[workshopIdx] : "";
+                    if (rawWorkshop === "") continue;
+
+                    let rawBatch = cols[13] || "";         // column N
+                    let normalizedBatch = rawBatch.trim().toLowerCase().replace(/\s/g, '');
+
+                    const workshopsList = rawWorkshop.split(',').map(w => w.trim()).filter(w => w !== "");
+                    for (let tIdx = 0; tIdx < workshopsList.length; tIdx++) {
+                        parsed.push({
+                            uid: `${clusterName}_r${rowIndex}_t${tIdx}`,
+                            name: rawName,
+                            topic: workshopsList[tIdx],
+                            batch: normalizedBatch,
+                            cluster: clusterName
+                        });
+                    }
+                }
+                return parsed;
+            } catch (e) { return []; }
+        }
+
         async function fetchLiveData() {
             const btn = document.getElementById('syncBtn');
             btn.innerText = "Syncing...";
             try {
-                const [orig, pan, min] = await Promise.all([
+                const [orig, pan, min, zap] = await Promise.all([
                     parseCSV(URLS.original, 'original'),
                     parseCSV(URLS.panay, 'panay'),
-                    parseCSV(URLS.mindanao, 'mindanao')
+                    parseCSV(URLS.mindanao, 'mindanao'),
+                    parseZampenCSV(URLS.zampen, 'zampen')
                 ]);
 
                 datasets.original = orig;
                 datasets.panay = pan;
                 datasets.mindanao = min;
+                datasets.zampen = zap;
 
-                const allTopics = new Set([...orig, ...pan, ...min].map(i => i.topic));
+                const allTopics = new Set([...orig, ...pan, ...min, ...zap].map(i => i.topic));
                 const dropdown = document.getElementById('specificTopicFilter');
                 dropdown.innerHTML = '<option value="All">All Workshops</option>';
                 Array.from(allTopics).sort().forEach(t => {
@@ -233,12 +289,14 @@
             document.getElementById('countOriginal').innerText = datasets.original.length;
             document.getElementById('countPanay').innerText = datasets.panay.length;
             document.getElementById('countMindanao').innerText = datasets.mindanao.length;
+            document.getElementById('countZampen').innerText = datasets.zampen.length;
         }
 
         function setFilterCluster(view, btn) {
             currentView = view;
             document.querySelectorAll('#clusterSelector .pill').forEach(p => p.classList.remove('active'));
             btn.classList.add('active');
+            // show batch selector only for original view (unchanged behavior)
             document.getElementById('batchSelector').style.display = (view === 'original') ? 'flex' : 'none';
             render();
         }
@@ -262,17 +320,25 @@
                 return matchesSearch && matchesTopic && matchesBatch;
             });
 
-            container.innerHTML = filtered.map(p => `
-                <div class="participant-card ${selectedIDs.has(p.uid) ? 'selected' : ''}" onclick="toggleSelection('${p.uid}')">
-                    <div class="cluster-tag ${p.cluster === 'panay' ? 'tag-panay' : (p.cluster === 'mindanao' ? 'tag-mindanao' : '')}">${p.cluster === 'original' ? '' : p.cluster}</div>
-                    <input type="checkbox" ${selectedIDs.has(p.uid) ? 'checked' : ''} style="width:20px;height:20px;pointer-events:none;">
-                    <div class="p-info">
-                        <h4>${p.name}</h4>
-                        <p>${p.topic}</p>
-                        ${p.batch ? `<span class="batch-label">${p.batch.toUpperCase()}</span>` : ''}
+            container.innerHTML = filtered.map(p => {
+                let tagClass = '';
+                let tagText = '';
+                if (p.cluster === 'panay') { tagClass = 'tag-panay'; tagText = 'PANAY'; }
+                else if (p.cluster === 'mindanao') { tagClass = 'tag-mindanao'; tagText = 'MINDANAO'; }
+                else if (p.cluster === 'zampen') { tagClass = 'tag-zampen'; tagText = 'ZAMPEN'; }
+                
+                return `
+                    <div class="participant-card ${selectedIDs.has(p.uid) ? 'selected' : ''}" onclick="toggleSelection('${p.uid}')">
+                        ${tagText ? `<div class="cluster-tag ${tagClass}">${tagText}</div>` : ''}
+                        <input type="checkbox" ${selectedIDs.has(p.uid) ? 'checked' : ''} style="width:20px;height:20px;pointer-events:none;">
+                        <div class="p-info">
+                            <h4>${p.name}</h4>
+                            <p>${p.topic}</p>
+                            ${p.batch ? `<span class="batch-label">${p.batch.toUpperCase()}</span>` : ''}
+                        </div>
                     </div>
-                </div>
-            `).join('');
+                `;
+            }).join('');
             document.getElementById('printSelectedBtn').innerText = `✅ PRINT (${selectedIDs.size})`;
         }
 
@@ -309,12 +375,11 @@
         function printSelected() {
             if (!certImage) return alert("Upload background template first!");
             
-            const allSource = [...datasets.original, ...datasets.panay, ...datasets.mindanao];
+            const allSource = [...datasets.original, ...datasets.panay, ...datasets.mindanao, ...datasets.zampen];
             const toPrint = allSource.filter(p => selectedIDs.has(p.uid));
             
             if (!toPrint.length) return alert("Select at least one teacher first.");
             
-            // Fix: Pull directly from inputs to avoid null config errors
             const config = {
                 nameTop: document.getElementById('nameTop').value,
                 nameLeft: document.getElementById('nameLeft').value,
@@ -333,7 +398,6 @@
                 </div>
             `).join('');
 
-            // Give the browser 500ms to handle the DOM injection and background paint
             setTimeout(() => {
                 window.print();
             }, 500);

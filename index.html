@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Teachers Training 2026 | Certificate Terminal v4.7 + ZAMPEN</title>
     <link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:wght@400;700&family=Plus+Jakarta+Sans:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <style>
         :root {
             --primary: #6366f1; --primary-light: #eef2ff; --success: #10b981;
@@ -111,6 +112,7 @@
                 <div class="search-bar"><input type="text" id="globalSearch" placeholder="Search teacher name..." onkeyup="render()"></div>
                 <button class="pill active" style="background:#1e293b; color:white; height:42px;" onclick="fetchLiveData()" id="syncBtn">🔄 SYNC ALL</button>
                 <button class="pill active" style="background:var(--primary); color:white; height:42px;" onclick="printSelected()" id="printSelectedBtn">✅ PRINT (0)</button>
+                <button class="pill active" style="background:var(--success); color:white; height:42px;" onclick="exportPDF()" id="pdfSelectedBtn">📄 PDF (0)</button>
             </div>
 
             <div class="selector-group">
@@ -340,6 +342,7 @@
                 `;
             }).join('');
             document.getElementById('printSelectedBtn').innerText = `✅ PRINT (${selectedIDs.size})`;
+            document.getElementById('pdfSelectedBtn').innerText = `📄 PDF (${selectedIDs.size})`;
         }
 
         function toggleSelection(uid) {
@@ -401,6 +404,49 @@
             setTimeout(() => {
                 window.print();
             }, 500);
+        }
+
+        function exportPDF() {
+            if (!certImage) return alert("Upload background template first!");
+            
+            const allSource = [...datasets.original, ...datasets.panay, ...datasets.mindanao, ...datasets.zampen];
+            const toPrint = allSource.filter(p => selectedIDs.has(p.uid));
+            
+            if (!toPrint.length) return alert("Select at least one teacher first.");
+            
+            const config = {
+                nameTop: document.getElementById('nameTop').value,
+                nameLeft: document.getElementById('nameLeft').value,
+                nameSize: document.getElementById('nameSize').value,
+                wsTop: document.getElementById('wsTop').value,
+                wsLeft: document.getElementById('wsLeft').value,
+                wsSize: document.getElementById('wsSize').value
+            };
+
+            const container = document.getElementById('bulk-container');
+            
+            // Force block visibility context temporarily for html2pdf capture engine
+            container.style.setProperty('display', 'block', 'important');
+            
+            container.innerHTML = toPrint.map(p => `
+                <div class="cert-page" style="background-image: url('${certImage}'); position: relative; width: 279.4mm; height: 215.9mm; background-size: 100% 100%;">
+                    <div class="print-text" style="position: absolute; transform: translate(-50%, -50%); text-align: center; width: 95%; top:${config.nameTop}%; left:${config.nameLeft}%; font-size:${config.nameSize}px; font-weight:700; font-family:'Libre Baskerville', serif;">${p.name}</div>
+                    <div class="print-text" style="position: absolute; transform: translate(-50%, -50%); text-align: center; width: 95%; top:${config.wsTop}%; left:${config.wsLeft}%; font-size:${config.wsSize}px; font-weight:700; font-family:'Plus Jakarta Sans', sans-serif;">${p.topic.toUpperCase()}</div>
+                </div>
+            `).join('');
+
+            const options = {
+                margin: 0,
+                filename: 'certificates_export.pdf',
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2, useCORS: true },
+                jsPDF: { unit: 'mm', format: [279.4, 215.9], orientation: 'landscape' }
+            };
+
+            html2pdf().set(options).from(container).save().then(() => {
+                container.style.display = 'none';
+                container.innerHTML = '';
+            });
         }
     </script>
 </body>
